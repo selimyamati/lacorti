@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingreso de Productos</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      background: #f5f5f5;
+    }
+    input, button, select, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #preview {
+      max-width: 100%;
+      margin-bottom: 1rem;
+    }
+    #respuesta {
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    #reader {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+  </style>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+  <h2>Ingreso de Producto</h2>
+
+  <button onclick="iniciarScanner()">📷 Escanear código de barras</button>
+  <div id="reader" style="display:none;"></div>
+
+  <form id="formulario">
+    <input type="text" name="codigo" id="codigo" placeholder="Código de barras" required>
+    <input type="text" name="nombre" placeholder="Nombre del producto" required>
+    <input type="number" step="0.01" name="costo" placeholder="Precio de costo" required>
+    <input type="number" step="0.01" name="venta" placeholder="Precio de venta" required>
+    <input type="number" name="stock" placeholder="Stock inicial" required>
+
+    <input type="file" id="foto" accept="image/*" capture="environment">
+    <img id="preview" src="#" alt="Vista previa" style="display:none;" />
+
+    <input type="hidden" name="fotoBase64" id="fotoBase64">
+
+    <button type="submit">Guardar producto</button>
+    <p id="respuesta"></p>
+  </form>
+
+  <script>
+    const form = document.getElementById('formulario');
+    const fotoInput = document.getElementById('foto');
+    const fotoBase64Input = document.getElementById('fotoBase64');
+    const preview = document.getElementById('preview');
+    const respuesta = document.getElementById('respuesta');
+    const codigoInput = document.getElementById('codigo');
+
+    fotoInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        fotoBase64Input.value = e.target.result;
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      }
+
+      if (file) {
+        reader.readAsDataURL(file);
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      try {
+        const r = await fetch("https://script.google.com/macros/s/AKfycby5yw1or5zEwLbtbZkxMypq3TWV1naxW1CPKB1yc-R2_2vrVCMtseeibxCseDZOXAWu/exec", {
+          method: "POST",
+          body: formData
+        });
+
+        respuesta.textContent = "Producto guardado correctamente ✅";
+        form.reset();
+        preview.style.display = 'none';
+        fotoBase64Input.value = '';
+        codigoInput.focus();
+      } catch (err) {
+        console.error(err);
+        respuesta.textContent = "Error al enviar los datos ❌";
+      }
+    });
+
+    function iniciarScanner() {
+      const reader = document.getElementById('reader');
+      reader.style.display = 'block';
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        (decodedText, decodedResult) => {
+          codigoInput.value = decodedText;
+          html5QrCode.stop();
+          reader.style.display = 'none';
+        },
+        (errorMessage) => {
+          console.warn(errorMessage);
+        }
+      ).catch((err) => {
+        console.error("Error al iniciar cámara:", err);
+      });
+    }
+  </script>
+</body>
+</html>
